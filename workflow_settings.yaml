@@ -1,0 +1,4 @@
+defaultProject: ynet-data-projects
+defaultDataset: HP_articles_impressions
+defaultAssertionDataset: dataform_assertions
+dataformCoreVersion: 3.0.26

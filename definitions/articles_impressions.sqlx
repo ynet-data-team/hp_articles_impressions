@@ -1,0 +1,576 @@
+config {
+    type: "incremental",
+
+    // Unique key to prevent duplicates - combination that makes each row unique
+    // uniqueKey: ["event_date", "user_pseudo_id", "event_timestamp", "event_name"],
+
+    // BigQuery optimizations
+    // bigquery: {
+        // Partition by the parsed date column
+        // partitionBy: "event_date",
+
+        // Only update recent partitions (saves cost)
+        // updatePartitionFilter: "event_date = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)",
+
+        // Cluster for better query performance
+        // clusterBy: ["Channel", "event_name"]
+    }
+
+
+-- Test Row2
+  -- Enhanced base table with incremental strategy
+  -- This replaces your current DELETE+INSERT approach with safer incremental updates
+  -- Main query - simplified to match your original logic
+
+ WITH data AS
+ (
+        SELECT
+          PARSE_DATE('%Y%m%d', event_date) AS date,
+          CASE
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'מגזין סופ') 
+        OR REGEXP_CONTAINS(LOWER((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name')), r'weekend') 
+        OR REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'מגזין חג') 
+        OR REGEXP_CONTAINS(LOWER((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name')), r'holiday maga') 
+        THEN 'מגזין סופש'
+    WHEN REGEXP_CONTAINS(LOWER((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name')), r'lifestyle') 
+        OR REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'לייף סטייל') 
+        THEN 'לייף סטייל'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'לאשה') 
+        OR REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'לאישה')  
+        OR REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'a woman') 
+        OR REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'wife') 
+        THEN 'לאשה'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'הכי חם') 
+        OR REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'hottest') 
+        OR REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'לא רק חדשות')  
+        THEN 'הכי חם'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'strip') 
+        OR REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'top_story') 
+        THEN 'סטריפים'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'חדשות') 
+        OR REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'news') 
+        THEN 'חדשות'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'כלכלה') THEN 'כלכלה וצרכנות'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'ספורט') THEN 'ספורט'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'חדשות') THEN 'חדשות'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'תרבות') THEN 'תרבות ובידור'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'דעות') 
+        OR REGEXP_CONTAINS(LOWER((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name')), r'opinions') 
+        THEN 'דעות וטורים'
+    WHEN REGEXP_CONTAINS(LOWER((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name')), r'pplus') THEN 'PPlus'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'סביבה') THEN 'סביבה, מדע ובעלי חיים'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'יהדות') THEN 'יהדות'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'בריאות') THEN 'בריאות וכושר'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'רכב') THEN 'רכב'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'יחסים') THEN 'יחסים'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'אוכל') THEN 'אוכל'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'ynet+') THEN 'ידיעות פלוס'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'פסק דין') THEN 'פסק דין'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'דיגיטל') THEN 'דיגיטל'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'חופש') THEN 'חופש'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'mynet') THEN 'mynet'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'מעורבות') THEN 'מעורבות'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'אופנה') THEN 'אופנה'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'וולנס') THEN 'וולנס'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'עיצוב') THEN 'עיצוב ואדריכלות'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'אולי פספסתם') THEN 'אולי פספסתם'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'נדל') THEN 'נדלן'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'ועידות') THEN 'ועידות וכנסים'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'תוכן מקודם') THEN 'תוכן מקודם'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'מוספים מיוחדים') THEN 'מוספים מיוחדים'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'פרוגי') THEN 'פרוגי'
+    ELSE 'other'
+    END AS componenta_Name,
+          (SELECT value.int_value FROM UNNEST(event_params) WHERE key = 'position_in_componenta') AS position_in_componenta,
+          TIMESTAMP(DATETIME_TRUNC(DATETIME(TIMESTAMP_MICROS(event_timestamp), "Asia/Jerusalem"), MINUTE)) AS event_minute,   -- TIMESTAMP_TRUNC(TIMESTAMP_MICROS(event_timestamp), MINUTE) AS event_minute,
+          COALESCE(
+              (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'destination_article_id'),
+              (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'article_id') 
+                  ) AS article_id,
+         -- ANY_VALUE((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'click_text') ) AS article_title,
+          COUNT(*) AS clicks
+        FROM 
+          `ynet-data-analytics.analytics_271196138.events_fresh_*`
+        WHERE
+          _TABLE_SUFFIX = FORMAT_DATE('%Y%m%d', DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY))
+          AND event_name = 'content_click'
+          AND (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'dc_path') LIKE '%8.Central-1.Home%'
+          AND (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name') IS NOT NULL
+          AND (SELECT value.int_value FROM UNNEST(event_params) WHERE key = 'position_in_componenta') IS NOT NULL
+          AND (platform LIKE '%WEB%' AND device.category NOT LIKE '%desktop%')
+          -- AND (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name') =  'ספורט'
+          GROUP BY 
+            date, componenta_Name, position_in_componenta, event_minute, article_id 
+          -- HAVING
+          --   COUNT(*) > 15
+          ORDER BY position_in_componenta, event_minute
+ )
+
+
+
+, eliminating_false_articles AS
+(
+  SELECT
+    date,
+    componenta_name,
+    position_in_componenta,
+  TIMESTAMP_TRUNC( TIMESTAMP_SECONDS(DIV(UNIX_SECONDS(event_minute), 300) * 300), SECOND ) AS event_5min_bucket,
+    --event_minute,
+    --ARRAY_AGG(article_id ORDER BY clicks DESC LIMIT 1)[OFFSET(0)] AS article_id,
+    article_id,
+    SUM(clicks) AS clicks
+  FROM
+    data
+  WHERE
+    article_id IS NOT NULL
+  GROUP BY
+    date,
+    componenta_name,
+    position_in_componenta,
+    event_minute,
+    article_id
+  ORDER BY 
+    position_in_componenta,
+    event_minute
+ )
+
+-- SELECT * FROM eliminating_false_articles
+
+, pre_winning_article_per_5_min AS   
+(
+    SELECT
+      date,componenta_name,position_in_componenta,event_5min_bucket,
+      ARRAY_AGG(article_id ORDER BY clicks DESC LIMIT 1)[OFFSET(0)] AS article_id,
+    FROM
+      eliminating_false_articles
+    GROUP BY
+      date,componenta_name,position_in_componenta,event_5min_bucket
+    ORDER BY  
+      date,componenta_name,position_in_componenta,event_5min_bucket
+)
+
+ -- SELECT * FROM pre_winning_article_per_5_min
+
+, winning_article_per_5_min AS   
+(
+    SELECT
+      date,componenta_name,position_in_componenta,event_5min_bucket,
+      CASE
+            WHEN IFNULL(LAG(article_id) OVER (PARTITION BY date,componenta_name,position_in_componenta ORDER BY event_5min_bucket), "X") <> article_id  -- AS previous_5min_article_id,
+            AND  IFNULL(LEAD(article_id) OVER (PARTITION BY date,componenta_name,position_in_componenta ORDER BY event_5min_bucket), "X") <> article_id -- AS next_5min_article_id,
+          THEN NULL
+          ELSE article_id
+      END AS article_id
+    FROM
+      pre_winning_article_per_5_min
+)
+
+, prev_article AS
+(
+  SELECT
+    *,
+    CASE
+        WHEN article_id = LAG(article_id) OVER (PARTITION BY date,componenta_name,position_in_componenta ORDER BY event_5min_bucket) THEN 0
+        ELSE 1 
+        END AS new_block
+  FROM
+    winning_article_per_5_min
+)
+
+, finding_additional_appearances AS
+(
+  SELECT
+    *,
+    SUM(new_block) OVER (PARTITION BY date,componenta_name,position_in_componenta, article_id ORDER BY event_5min_bucket) AS chronology
+  FROM
+    prev_article
+)
+
+, first_and_last_appearance AS
+(
+ SELECT
+  date,
+  componenta_name,
+  position_in_componenta,
+  article_id, 
+  MIN (event_5min_bucket) AS first_appearance,
+  MAX (event_5min_bucket) AS last_appearance
+ FROM
+  finding_additional_appearances
+ WHERE
+    article_id IS NOT NULL
+ GROUP BY  
+    date,
+    componenta_name,
+    position_in_componenta,
+    article_id,
+    chronology
+)
+
+, dim_titles AS
+(
+  SELECT  
+    DISTINCT WCM_ID AS article_id, 
+    ANY_VALUE(TITLE) AS Title
+  FROM 
+    `ynet-data-analytics.WCM_Raw_Data.Daily_WCM_Report_*`  
+  GROUP BY
+    WCM_ID
+)
+
+
+, dim_channels AS
+(
+  SELECT
+    DISTINCT(article_id) AS article_id,
+    ANY_VALUE(Channel) AS Channel
+  FROM
+        (
+        SELECT  
+          DISTINCT
+            (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'article_id')  AS article_id,
+          ANY_VALUE(
+            CASE
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%2.News%' OR LOWER((SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path')) LIKE '%blogs%' THEN 'News'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%3.Sport%' THEN 'Sport'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%6.Economy%' THEN 'Economy'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%538.Entertaiment%' OR (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%538.entertaiment%' THEN 'Entertaiment'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%11211.PnaiPlus%' THEN 'PnaiPlus'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%550.Auto%' THEN 'Auto'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%544.Comput%' THEN 'Digital'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%975.Food%' THEN 'Food'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%3925.Dating%' THEN 'Dating'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%6377.enviroment.science%' THEN 'Enviroment and Science'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%6377.Traklin%' THEN 'Enviroment and Science'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%598.Vacation%' THEN 'Vacation'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%laisha%' THEN 'Laisha'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%1208.Health%' THEN 'Health'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%4403.Judais%' THEN 'Judaism'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%architecture%' THEN 'Architecture'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%menta%' THEN 'Menta'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%6.Economy-5363.Consumer.and.Marketing%' THEN 'Consumer and Marketing'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%3052.Parents%' THEN 'Parents'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%3262.Good%' THEN 'Good'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%fashion%' THEN 'Fashion'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%2.News-194.Opinion%' THEN 'Opinions'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%8.Central-1.Home%' THEN 'Home Page'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%39672.podcasts%' THEN 'Podcasts'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%201.Weather%' THEN 'Weather'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%1069.Astrology%' THEN 'Astrology'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%10.Xnet%' THEN 'Xnet'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%games%' THEN 'Games'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%vgnTopics%' THEN 'Topics'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%radio%' THEN 'Radio'
+          WHEN (SELECT x.value.string_value FROM UNNEST(event_params) x WHERE x.key='dc_path') LIKE '%wellness%' THEN 'Wellness'
+          ELSE 'other'
+          END
+          ) AS Channel,
+          COUNT(*) AS Pageviews,
+          ROW_NUMBER() OVER (PARTITION BY (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'article_id') ORDER BY COUNT(*) Desc) AS rn
+        FROM 
+                `ynet-data-analytics.analytics_271196138.events_fresh_*`
+        WHERE
+          _TABLE_SUFFIX = FORMAT_DATE('%Y%m%d', DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY))
+          AND event_name IN ('page_view','screen_view')
+        GROUP BY
+          article_id, event_params
+  )
+  WHERE rn = 1  
+  GROUP BY article_id
+)
+
+
+, clicks_data AS 
+(
+  SELECT
+    PARSE_DATE('%Y%m%d', event_date) AS date,
+          CASE
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'מגזין סופ') 
+        OR REGEXP_CONTAINS(LOWER((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name')), r'weekend') 
+        OR REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'מגזין חג') 
+        OR REGEXP_CONTAINS(LOWER((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name')), r'holiday maga') 
+        THEN 'מגזין סופש'
+    WHEN REGEXP_CONTAINS(LOWER((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name')), r'lifestyle') 
+        OR REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'לייף סטייל') 
+        THEN 'לייף סטייל'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'לאשה') 
+        OR REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'לאישה')  
+        OR REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'a woman') 
+        OR REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'wife') 
+        THEN 'לאשה'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'הכי חם') 
+        OR REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'hottest') 
+        OR REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'לא רק חדשות')  
+        THEN 'הכי חם'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'strip') 
+        OR REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'top_story') 
+        THEN 'סטריפים'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'חדשות') 
+        OR REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'news') 
+        THEN 'חדשות'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'כלכלה') THEN 'כלכלה וצרכנות'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'ספורט') THEN 'ספורט'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'חדשות') THEN 'חדשות'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'תרבות') THEN 'תרבות ובידור'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'דעות') 
+        OR REGEXP_CONTAINS(LOWER((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name')), r'opinions') 
+        THEN 'דעות וטורים'
+    WHEN REGEXP_CONTAINS(LOWER((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name')), r'pplus') THEN 'PPlus'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'סביבה') THEN 'סביבה, מדע ובעלי חיים'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'יהדות') THEN 'יהדות'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'בריאות') THEN 'בריאות וכושר'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'רכב') THEN 'רכב'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'יחסים') THEN 'יחסים'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'אוכל') THEN 'אוכל'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'ynet+') THEN 'ידיעות פלוס'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'פסק דין') THEN 'פסק דין'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'דיגיטל') THEN 'דיגיטל'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'חופש') THEN 'חופש'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'mynet') THEN 'mynet'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'מעורבות') THEN 'מעורבות'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'אופנה') THEN 'אופנה'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'וולנס') THEN 'וולנס'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'עיצוב') THEN 'עיצוב ואדריכלות'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'אולי פספסתם') THEN 'אולי פספסתם'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'נדל') THEN 'נדלן'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'ועידות') THEN 'ועידות וכנסים'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'תוכן מקודם') THEN 'תוכן מקודם'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'מוספים מיוחדים') THEN 'מוספים מיוחדים'
+    WHEN REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name'), r'פרוגי') THEN 'פרוגי'
+    ELSE 'other'
+    END AS componenta_Name,
+    (SELECT value.int_value FROM UNNEST(event_params) WHERE key = 'position_in_componenta') AS position_in_componenta,
+    TIMESTAMP(DATETIME_TRUNC(DATETIME(TIMESTAMP_MICROS(event_timestamp), "Asia/Jerusalem"), MINUTE)) AS event_minute,   -- TIMESTAMP_TRUNC(TIMESTAMP_MICROS(event_timestamp), MINUTE) AS event_minute,
+    COALESCE(
+    (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'destination_article_id'),
+    (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'article_id') 
+    ) AS article_id,
+    COUNT(*) AS clicks
+  FROM
+    `ynet-data-analytics.analytics_271196138.events_fresh_*`
+  WHERE
+    _TABLE_SUFFIX = FORMAT_DATE('%Y%m%d', DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY))
+          AND event_name = 'content_click'
+          AND (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'dc_path') LIKE '%8.Central-1.Home%'
+          AND (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'componenta_name') IS NOT NULL
+          AND (SELECT value.int_value FROM UNNEST(event_params) WHERE key = 'position_in_componenta') IS NOT NULL
+  GROUP BY
+     date, componenta_Name, position_in_componenta, event_minute,  article_id 
+)
+
+-- Final Appearance Data
+
+, final_appearance_data AS
+
+(
+SELECT
+  a.date,
+  a.componenta_name,
+  a.position_in_componenta,
+  a.article_id,
+  a.first_appearance,
+  a.last_appearance,
+  c.Title,
+  b.channel,
+  TIMESTAMP_DIFF(last_appearance, first_appearance, MINUTE) AS minutes_diff,
+  TIMESTAMP_DIFF(last_appearance, first_appearance, SECOND) AS seconds_diff  
+FROM
+  first_and_last_appearance a
+  LEFT JOIN dim_channels b ON a.article_id = b.article_id
+  LEFT JOIN dim_titles c ON b.article_id = c.article_id
+WHERE
+  TIMESTAMP_DIFF(last_appearance, first_appearance, MINUTE) != 0
+ORDER BY
+  position_in_componenta, first_appearance
+)
+
+-- HP Pageviews Data
+
+, homepage_pageviews AS
+(
+    SELECT
+      timestamp,
+      platform,
+      pageviews
+    FROM
+      `ynet-data-analytics.Ynet_Home_strip_data_GA4.Daily_Homepage_Pageview_Per_Minute`  
+    WHERE
+      DATE(timestamp) > '2025-01-01'
+)
+
+-- CTR Data
+
+
+
+-- Combining appearance data and Pageviews
+
+, data_and_hp_pageviews AS
+(
+
+    SELECT
+      date,
+      componenta_name,
+      position_in_componenta,
+      article_id,
+      first_appearance,
+      last_appearance,
+      Title,
+      channel,
+      minutes_diff,
+      seconds_diff,
+      SUM(pv.pageviews) AS hp_pageviews
+    FROM
+      final_appearance_data d LEFT JOIN homepage_pageviews pv
+                              ON TIMESTAMP(d.first_appearance) < pv.timestamp AND pv.timestamp < TIMESTAMP(d.last_appearance)
+    GROUP BY
+      date,
+      componenta_name,
+      position_in_componenta,
+      article_id,
+      first_appearance,
+      last_appearance,
+      Title,
+      channel,
+      minutes_diff,
+      seconds_diff
+)
+
+,ctr AS
+(
+  SELECT
+    CASE
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'מגזין סופ') 
+        OR REGEXP_CONTAINS(LOWER(CTR_Componenta_Name), r'weekend') 
+        OR REGEXP_CONTAINS(CTR_Componenta_Name, r'מגזין חג') 
+        OR REGEXP_CONTAINS(LOWER(CTR_Componenta_Name), r'holiday maga') 
+        THEN 'מגזין סופש'
+    WHEN REGEXP_CONTAINS(LOWER(CTR_Componenta_Name), r'lifestyle') 
+        OR REGEXP_CONTAINS(CTR_Componenta_Name, r'לייף סטייל') 
+        THEN 'לייף סטייל'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'לאשה') 
+        OR REGEXP_CONTAINS(CTR_Componenta_Name, r'לאישה')  
+        OR REGEXP_CONTAINS(CTR_Componenta_Name, r'a woman') 
+        OR REGEXP_CONTAINS(CTR_Componenta_Name, r'wife') 
+        THEN 'לאשה'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'הכי חם') 
+        OR REGEXP_CONTAINS(CTR_Componenta_Name, r'hottest') 
+        OR REGEXP_CONTAINS(CTR_Componenta_Name, r'לא רק חדשות')  
+        THEN 'הכי חם'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'strip') 
+        OR REGEXP_CONTAINS(CTR_Componenta_Name, r'top_story') 
+        THEN 'סטריפים'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'חדשות') 
+        OR REGEXP_CONTAINS(CTR_Componenta_Name, r'news') 
+        THEN 'חדשות'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'כלכלה') THEN 'כלכלה וצרכנות'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'ספורט') THEN 'ספורט'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'חדשות') THEN 'חדשות'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'תרבות') THEN 'תרבות ובידור'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'דעות') 
+        OR REGEXP_CONTAINS(LOWER(CTR_Componenta_Name), r'opinions') 
+        THEN 'דעות וטורים'
+    WHEN REGEXP_CONTAINS(LOWER(CTR_Componenta_Name), r'pplus') THEN 'PPlus'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'סביבה') THEN 'סביבה, מדע ובעלי חיים'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'יהדות') THEN 'יהדות'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'בריאות') THEN 'בריאות וכושר'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'רכב') THEN 'רכב'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'יחסים') THEN 'יחסים'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'אוכל') THEN 'אוכל'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'ynet+') THEN 'ידיעות פלוס'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'פסק דין') THEN 'פסק דין'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'דיגיטל') THEN 'דיגיטל'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'חופש') THEN 'חופש'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'mynet') THEN 'mynet'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'מעורבות') THEN 'מעורבות'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'אופנה') THEN 'אופנה'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'וולנס') THEN 'וולנס'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'עיצוב') THEN 'עיצוב ואדריכלות'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'אולי פספסתם') THEN 'אולי פספסתם'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'נדל') THEN 'נדלן'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'ועידות') THEN 'ועידות וכנסים'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'תוכן מקודם') THEN 'תוכן מקודם'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'מוספים מיוחדים') THEN 'מוספים מיוחדים'
+    WHEN REGEXP_CONTAINS(CTR_Componenta_Name, r'פרוגי') THEN 'פרוגי'
+    ELSE 'other'
+END AS CTR_Componenta_Name,
+    CTR_Position_in_Componenta,
+    Hour,
+    CTR AS average_position_ctr
+  FROM
+    `ynet-data-projects.HP_articles_impressions.CTR_per_hour`
+)
+
+, inc_pv_and_clicks AS
+(
+SELECT
+      d.date,
+      d.componenta_name,
+      d.position_in_componenta,
+      d.article_id,
+      d.first_appearance,
+      d.last_appearance,
+      d.Title,
+      d.channel,
+      d.minutes_diff,
+      d.seconds_diff,
+      d.hp_pageviews,
+      SUM(c.clicks) AS clicks,
+      SUM(c.clicks) / d.hp_pageviews AS ctr
+FROM
+  data_and_hp_pageviews d JOIN clicks_data c
+                           ON d.date = c.date
+                           AND d.componenta_name = c.componenta_name
+                           AND d.position_in_componenta = c.position_in_componenta
+                           AND d.article_id = c.article_id
+                           AND TIMESTAMP(d.first_appearance) < c.event_minute AND c.event_minute < TIMESTAMP(d.last_appearance)
+GROUP BY
+      d.date,
+      d.componenta_name,
+      d.position_in_componenta,
+      d.article_id,
+      d.first_appearance,
+      d.last_appearance,
+      d.Title,
+      d.channel,
+      d.minutes_diff,
+      d.seconds_diff,
+      d.hp_pageviews
+)
+
+-- Combining CTR data
+
+SELECT
+      d.date,
+      d.componenta_name,
+      d.position_in_componenta,
+      d.article_id,
+      d.first_appearance,
+      d.last_appearance,
+      d.Title,
+      d.channel,
+      d.minutes_diff,
+      d.seconds_diff,
+      d.hp_pageviews,
+      d.clicks,
+      d.ctr,
+      AVG(ctr.average_position_ctr) AS average_position_ctr,
+      CAST(NULL AS STRING) AS hourly_range
+FROM  
+  inc_pv_and_clicks d LEFT JOIN ctr
+                    ON d.componenta_name = ctr.ctr_componenta_name
+                       AND d.position_in_componenta = ctr.ctr_position_in_componenta
+                       AND CAST(EXTRACT(HOUR FROM d.first_appearance) AS INT) <= ctr.Hour AND ctr.Hour <= CAST(EXTRACT(HOUR FROM d.last_appearance) AS INT)
+GROUP BY
+      d.date,
+      d.componenta_name,
+      d.position_in_componenta,
+      d.article_id,
+      d.first_appearance,
+      d.last_appearance,
+      d.Title,
+      d.channel,
+      d.minutes_diff,
+      d.seconds_diff,
+      d.hp_pageviews,
+      clicks,
+      ctr
