@@ -24,6 +24,13 @@ SELECT
   -- MAX(ctr) OVER (PARTITION BY date) - MIN(ctr) OVER (PARTITION BY date) AS scale_range,
   (ctr - MIN(ctr) OVER (PARTITION BY date,ai.componenta_name,ai.position_in_componenta) ) /  (MAX(ctr) OVER (PARTITION BY date) - MIN(ctr) OVER (PARTITION BY date)) AS hour_score,
   s.clicks_percent_from_total AS position_scoring
+  channel,
+  minutes_diff,
+  seconds_diff,
+  clicks,
+  ctr,
+  average_position_ctr,
+  hourly_range
 FROM 
   `ynet-data-projects.HP_articles_impressions.articles_impressions` ai JOIN `ynet-data-projects.HP_articles_impressions.hp_positions_scoring` s
   ON ai.componenta_name = s.componenta_name AND ai.position_in_componenta = s.Position
