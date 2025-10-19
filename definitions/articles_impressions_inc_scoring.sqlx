@@ -28,7 +28,6 @@ SELECT
   minutes_diff,
   seconds_diff,
   clicks,
-  ctr,
   average_position_ctr,
   hourly_range
 FROM 
